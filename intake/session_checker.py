@@ -18,7 +18,7 @@ from google.genai import types
 
 from intake.recorder  import record_until_enter, save_wav
 from intake.transcriber import transcribe
-from output.tts_client  import stream_tts_and_play
+from output.speaker import StreamingPlayer
 from config import EXTRACT_MODEL
 
 load_dotenv()
@@ -99,7 +99,9 @@ def _extract_context(answers: list[str]) -> SessionContext:
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 temperature=0.1,
-                thinking_config=types.ThinkingConfig(thinking_level="minimal"),
+                thinking_config=types.ThinkingConfig(
+                include_thoughts=True,
+                thinking_budget=1024 ),
                 max_output_tokens=200,
             ),
         )

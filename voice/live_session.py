@@ -45,6 +45,10 @@ from prompt.assembler    import build_system_prompt, AssemblerInput
 from output.speaker      import StreamingPlayer, stop_speaking, OUT_RATE
 from memory.profile_manager import ProfileManager
 from memory.session_memory  import SessionMemory
+from cognition.self_talk_detector import classify_speech, get_selftalk_instruction
+from cognition.give_up_classifier import classify_give_up, GiveUpClassification
+from voice.interruption_manager import InterruptionManager
+
 import memory.belief_graph as bg_module
 
 from style.vocabulary_mirror import get_mirror_instruction, \
@@ -84,6 +88,8 @@ class FullDuplexSession:
         self.grade        = grade
         self.student_id   = profile.get("student_id", "student")
         self.archetype    = profile.get("ipc", {}).get("archetype", "lina")
+        self._interrupt_mgr = InterruptionManager()
+        self._is_mid_problem = False 
 
         # Adapted IPC for this session
         self.adapted_ipc  = {
@@ -387,6 +393,65 @@ class FullDuplexSession:
                     ]):
                         self._running = False
                         return ""
+                    if txt:
+                    # Classify speech intent BEFORE logging or responding
+                    speech_cls = classify_speech(
+                        txt,
+                        rms=self.adapted_ipc.get("voice_energy", 0.05),
+                        baseline_rms=0.08,
+                    )
+
+                    if speech_cls.speech_type == "SELF_TALK":
+                        # Do NOT process as directed speech
+                        # Just extract cognitive signal for ZPD estimation
+                        logger.debug(
+                            f"Self-talk detected: '{txt[:40]}' "
+                            f"signal={speech_cls.cognitive_signal}"
+                        )
+                        # Don't add to conversation history
+                        # Don't update session memory
+                        # Continue waiting
+                        continue  # or just don't trigger AI response
+
+                    # Check give-up intent
+                    if any(p in txt.lower() for p in ["give up", "i quit", "forget it",
+                                                        "can't do", "bye syra", "stop"]):
+                        give_up_cls = classify_give_up(
+                            txt,
+                            is_mid_problem=self._is_mid_problem,
+                            zpd_position=self.zpd._compute_estimate().position,
+                            turns_in_session=self.turn_num,
+                            giving_up_ipc=self.adapted_ipc.get("giving_up", False),
+                        )
+
+                        if give_up_cls.intent == "TERMINATION":
+                            self._running = False
+                            return ""
+
+                        if give_up_cls.push_through:
+                            # Inject push-through instruction into next prompt
+                            # (store it, assembler will pick it up)
+                            self._push_through_instruction = give_up_cls.instruction
+
+                # Silence handling — in send loop, check periodically:
+                silence_state = self._interrupt_mgr.get_silence_state(
+                    zpd_position=self.zpd._compute_estimate().position,
+                    prior_had_error=self.consecutive_confused > 0,
+                    last_student_text=self.last_student_text,
+                )
+                if silence_state:
+                    intervention = self._interrupt_mgr.get_silence_intervention(silence_state)
+                    if intervention:
+                        # Send text injection to trigger calibrated hint
+                        await session.send_realtime_input(text=intervention)
+                        self._interrupt_mgr._silence_start = None  # reset
+
+                # Distraction check — every 10 frames:
+                if self._interrupt_mgr.check_distraction():
+                    # Flag in session context — reduce difficulty expectations
+                    self.session_ctx.external_load = True
+                    logger.info("Distraction detected — flagging external load")
+            
 
             # AI audio
             mt = getattr(sc, "model_turn", None)

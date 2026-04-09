@@ -68,3 +68,21 @@ ANOMALY_BLOCK_ALL     = True   # if True, anomaly sessions block ALL profile upd
 # ── Onboarding ───────────────────────────────────────────────────────
 ONBOARDING_IPC_RICH   = {"q1", "q8", "q12"}  # questions with full IPC classification
 ONBOARDING_BELIEF_Qs  = {"q1", "q3", "q8", "q11"}  # questions that seed belief graph
+
+
+# ── Self-talk detection ───────────────────────────────────────────────
+SELF_TALK_RMS_CEILING      = 0.05   # below this = likely self-talk
+SELF_TALK_MIN_WORDS        = 8      # below this + quiet = self-talk
+DIRECTED_SPEECH_MIN_WORDS  = 4      # minimum for directed speech
+
+# ── Silence intervention ──────────────────────────────────────────────
+CONFUSED_SILENCE_LIMIT     = 30.0   # seconds before confused-silence hint
+PRODUCTIVE_SILENCE_LIMIT   = 90.0   # seconds before productive-silence check-in
+SILENCE_GENTLE_CHECKIN_S   = 45.0   # "are you still working?" threshold
+
+# ── Distraction detection ─────────────────────────────────────────────
+DISTRACTION_RMS_SPIKE      = 3.0    # ratio of sudden background noise
+DISTRACTION_DURATION_S     = 5.0    # sustained spike = distraction confirmed
+
+# ── Give-up handling ──────────────────────────────────────────────────
+PUSH_THROUGH_MID_PROBLEM   = True   # always push through mid-problem give-up

@@ -19,10 +19,12 @@ import logging
 from dataclasses import dataclass, field
 from typing import Optional
 from datetime import datetime, timedelta
-
+from dotenv import load_dotenv
+import os
 from google import genai
 from google.genai import types
 from config import EXTRACT_MODEL, SR_INITIAL_STABILITY, SR_STABILITY_GROWTH
+load_dotenv()
 
 logger  = logging.getLogger("SYRA.BeliefModel")
 _client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
