@@ -1,0 +1,15 @@
+{
+  "onboarding_done": false,
+  "_partial_signals": [
+    {}
+  ],
+  "_partial_ipc": [
+    {
+      "dominance": 0.052796043910259494,
+      "warmth": 0.613432350140666,
+      "pace": "fast",
+      "giving_up": false
+    }
+  ],
+  "_checkpoint_time": "2026-04-10T21:08:58.014600"
+}

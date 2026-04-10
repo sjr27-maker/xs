@@ -8,7 +8,7 @@ conversation naturally — never announces it as review.
 from datetime import datetime
 from memory import belief_graph as bg
 from config import SR_REVIEW_THRESHOLD
-
+from typing import Optional
 
 def get_review_prompt(
         graph:          dict,
@@ -50,4 +50,3 @@ def get_review_prompt(
     return instruction
 
 
-from typing import Optional
